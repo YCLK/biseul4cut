@@ -2,6 +2,8 @@
 2024 비슬고 동아리한마당 엔지니어스 부스 인생네컷
 
 # dependency
+python 3.10
+
 ```shell
 pip install PyQt5
 ```
