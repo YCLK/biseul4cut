@@ -12,18 +12,30 @@ class MainWindow(QWidget):
         super().__init__()
 
         self.setWindowTitle("비슬네컷")
-        self.setGeometry(0, 0, 540, 960)  # 9:16 비율 설정
-        self.setFixedSize(540, 960)  # 창 크기 고정
+        self.setGeometry(0, 0, 1500, 800)
+        self.setFixedSize(1500, 800)  # 창 크기 고정
 
         self.initUI()
+
+        app = QApplication.instance()
+        screen_count = len(app.screens())
+        if screen_count > 1:
+            second_screen = app.screens()[1]
+            rect = second_screen.geometry()
+            self.move(rect.left(), rect.top())
 
     def initUI(self):
         self.main_layout = QVBoxLayout()
         self.title = QLabel("비슬네컷")
+        self.title.setStyleSheet(
+            "font-size: 40px; text-align: center; qproperty-alignment: AlignCenter;"
+            )
         self.title.setAlignment(Qt.AlignCenter)
-        self.title.setStyleSheet("font-size: 24px;")
 
         self.start_button = QPushButton("시작하기")
+        self.start_button.setStyleSheet(
+            "font-size: 18px; padding: 10px; background-color: #007BFF; color: white; border-radius: 5px;"
+            )
         self.start_button.setFixedHeight(50)
         self.start_button.clicked.connect(self.show_frame_selection)
 
@@ -37,32 +49,43 @@ class MainWindow(QWidget):
 
         frame_layout = QHBoxLayout()
 
+        # 프레임 1 레이아웃 설정
         frame1_layout = QVBoxLayout()
         frame1_label = QLabel()
-        frame1_pixmap = QPixmap("frame/frame1.png")
+        frame1_pixmap = QPixmap("resources/frame1.png")
         if frame1_pixmap.isNull():
             frame1_label.setText("frame1.png 로드 실패")
         else:
-            frame1_label.setPixmap(frame1_pixmap.scaled(180, 320, Qt.KeepAspectRatio))
+            frame1_label.setPixmap(frame1_pixmap.scaled(360, 640, Qt.KeepAspectRatio))  # 크기를 더 크게 조정
+        frame1_label.setAlignment(Qt.AlignCenter)  # 라벨 중앙 정렬
         frame1_button = QPushButton("선택하기")
+        frame1_button.setStyleSheet(
+            "font-size: 18px; padding: 10px; background-color: #007BFF; color: white; border-radius: 5px;"
+        )
         frame1_button.clicked.connect(lambda: self.show_camera_window("frame1.png"))
 
         frame1_layout.addWidget(frame1_label)
-        frame1_layout.addWidget(frame1_button)
+        frame1_layout.addWidget(frame1_button, alignment=Qt.AlignCenter)  # 버튼 중앙 정렬
 
+        # 프레임 2 레이아웃 설정
         frame2_layout = QVBoxLayout()
         frame2_label = QLabel()
-        frame2_pixmap = QPixmap("frame/frame2.png")
+        frame2_pixmap = QPixmap("resources/frame2.png")
         if frame2_pixmap.isNull():
             frame2_label.setText("frame2.png 로드 실패")
         else:
-            frame2_label.setPixmap(frame2_pixmap.scaled(180, 320, Qt.KeepAspectRatio))
+            frame2_label.setPixmap(frame2_pixmap.scaled(360, 640, Qt.KeepAspectRatio))  # 크기를 더 크게 조정
+        frame2_label.setAlignment(Qt.AlignCenter)  # 라벨 중앙 정렬
         frame2_button = QPushButton("선택하기")
+        frame2_button.setStyleSheet(
+            "font-size: 18px; padding: 10px; background-color: #007BFF; color: white; border-radius: 5px;"
+        )
         frame2_button.clicked.connect(lambda: self.show_camera_window("frame2.png"))
 
         frame2_layout.addWidget(frame2_label)
-        frame2_layout.addWidget(frame2_button)
+        frame2_layout.addWidget(frame2_button, alignment=Qt.AlignCenter)  # 버튼 중앙 정렬
 
+        # 메인 레이아웃에 프레임 레이아웃 추가
         frame_layout.addLayout(frame1_layout)
         frame_layout.addLayout(frame2_layout)
 
@@ -80,23 +103,32 @@ class MainWindow(QWidget):
                 if child.widget() is not None:
                     child.widget().deleteLater()
 
+
 class CameraWindow(QWidget):
     def __init__(self, frame):
         super().__init__()
 
-        self.setWindowTitle("카메라")
-        self.setGeometry(0, 0, 540, 960)  # 9:16 비율 설정
-        self.setFixedSize(540, 960)  # 창 크기 고정
+        self.setWindowTitle("비슬네컷")
+        self.setGeometry(0, 0, 1500, 800)  # 9:16 비율 설정
+        self.setFixedSize(1500, 800)  # 창 크기 고정
 
         self.frame = frame
         self.initUI()
+
+        # 두 번째 모니터로 이동
+        app = QApplication.instance()
+        screen_count = len(app.screens())
+        if screen_count > 1:
+            second_screen = app.screens()[1]
+            rect = second_screen.geometry()
+            self.move(rect.left(), rect.top())
 
     def initUI(self):
         self.main_layout = QVBoxLayout()
 
         self.countdown_label = QLabel("10초 후에 촬영을 시작합니다")
         self.countdown_label.setAlignment(Qt.AlignCenter)
-        self.countdown_label.setStyleSheet("font-size: 24px;")
+        self.countdown_label.setStyleSheet("font-size: 40px;")
         self.main_layout.addWidget(self.countdown_label)
 
         self.camera_label = QLabel()
@@ -105,7 +137,7 @@ class CameraWindow(QWidget):
 
         self.photo_count_label = QLabel("0/8장 촬영됨")
         self.photo_count_label.setAlignment(Qt.AlignCenter)
-        self.photo_count_label.setStyleSheet("font-size: 24px;")
+        self.photo_count_label.setStyleSheet("font-size: 40px;")
         self.main_layout.addWidget(self.photo_count_label)
 
         self.setLayout(self.main_layout)
@@ -120,6 +152,8 @@ class CameraWindow(QWidget):
         self.timer.start(1000)  # 1초마다 타이머 업데이트
 
         self.cap = cv2.VideoCapture(0)
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
         self.show_camera_feed()
 
         # temp 폴더 생성
@@ -168,7 +202,7 @@ class CameraWindow(QWidget):
 
         instruction_label = QLabel("촬영된 8장의 사진 중 4장을 선택하세요")
         instruction_label.setAlignment(Qt.AlignCenter)
-        instruction_label.setStyleSheet("font-size: 24px;")
+        instruction_label.setStyleSheet("font-size: 40px;")
         photo_selection_layout.addWidget(instruction_label)
 
         grid_layout = QGridLayout()
@@ -180,7 +214,8 @@ class CameraWindow(QWidget):
             if not photo_pixmap.isNull():
                 photo_label.setPixmap(photo_pixmap.scaled(180, 320, Qt.KeepAspectRatio))
             checkbox = QCheckBox()
-            checkbox.stateChanged.connect(self.checkbox_state_changed)  # 체크박스 상태 변경 시 이벤트 연결
+            checkbox.setStyleSheet("QCheckBox::indicator { width: 100px; height: 100px; }")  # 체크박스 크기 조절
+            checkbox.stateChanged.connect(self.checkbox_state_changed)
             self.checkboxes.append(checkbox)
 
             grid_layout.addWidget(photo_label, i // 4, (i % 4) * 2)
@@ -189,6 +224,10 @@ class CameraWindow(QWidget):
         photo_selection_layout.addLayout(grid_layout)
 
         submit_button = QPushButton("선택 완료")
+        submit_button.setStyleSheet(
+            "font-size: 18px; padding: 10px; background-color: #007BFF; color: white; border-radius: 5px;"
+        )
+
         submit_button.clicked.connect(self.submit_selection)
         photo_selection_layout.addWidget(submit_button)
 
@@ -231,6 +270,7 @@ class CameraWindow(QWidget):
         timestamp = datetime.now().strftime("%y%m%d%H%M%S")
         self.output_path = f"output/biseul-{timestamp}.png"
         new_image.save(self.output_path)
+        # 셔터 소리 재생
         print(f"{self.output_path} 저장 완료")
 
     def cleanup_temp_folder(self):
@@ -256,24 +296,32 @@ class CompletionWindow(QWidget):
     def __init__(self, output_path):
         super().__init__()
 
-        self.setWindowTitle("촬영 완료")
-        self.setGeometry(0, 0, 540, 960)  # 9:16 비율 설정
-        self.setFixedSize(540, 960)  # 창 크기 고정
+        self.setWindowTitle("비슬네컷")
+        self.setGeometry(0, 0, 1500, 800)  # 9:16 비율 설정
+        self.setFixedSize(1500, 800)  # 창 크기 고정
 
         self.output_path = output_path
         self.initUI()
+
+        # 두 번째 모니터로 이동
+        app = QApplication.instance()
+        screen_count = len(app.screens())
+        if screen_count > 1:
+            second_screen = app.screens()[1]
+            rect = second_screen.geometry()
+            self.move(rect.left(), rect.top())
 
     def initUI(self):
         self.main_layout = QVBoxLayout()
 
         completion_label = QLabel("촬영이 완료되었습니다! 아래 QR 코드를 스캔하여\n사진을 다운로드하세요.")
         completion_label.setAlignment(Qt.AlignCenter)
-        completion_label.setStyleSheet("font-size: 24px;")
+        completion_label.setStyleSheet("font-size: 40px;")
         self.main_layout.addWidget(completion_label)
 
         # QR 코드 이미지 생성 (임시로 QR 코드 생성 부분 생략)
         qr_label = QLabel()
-        qr_pixmap = QPixmap("qr/qr_code.png")
+        qr_pixmap = QPixmap("temp/qr_code.png")
         qr_label.setPixmap(qr_pixmap.scaled(300, 300, Qt.KeepAspectRatio))
         qr_label.setAlignment(Qt.AlignCenter)
         self.main_layout.addWidget(qr_label)
@@ -292,8 +340,6 @@ class CompletionWindow(QWidget):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-
     main_window = MainWindow()
     main_window.show()
-
     sys.exit(app.exec_())
