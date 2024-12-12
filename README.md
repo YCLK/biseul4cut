@@ -14,3 +14,11 @@ pip install opencv-contrib-python # 주요 및 추가 모듈 설치
 ```shell
 pip install pillow
 ```
+
+```shell
+pip install qrcode
+```
+
+```shell
+pip install requests
+```
