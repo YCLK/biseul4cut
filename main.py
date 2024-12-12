@@ -178,7 +178,7 @@ class CameraWindow(QWidget):
     def capture_photo(self):
         ret, frame = self.cap.read()
         if ret:
-            frame = cv2.flip(frame, 1)  # 좌우반전
+            #frame = cv2.flip(frame, 1)  # 좌우반전
             photo_path = f"temp/photo_{self.photo_counter + 1}.png"
             cv2.imwrite(photo_path, frame)
             print(f"{photo_path} 저장 완료")
