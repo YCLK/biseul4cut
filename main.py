@@ -1,8 +1,10 @@
 import sys
 import cv2
 import os
+import qrcode
+import requests
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QGridLayout, QCheckBox, QMessageBox
-from PyQt5.QtGui import QPixmap, QImage
+from PyQt5.QtGui import QPixmap, QImage, QFont, QFontDatabase
 from PyQt5.QtCore import Qt, QTimer
 from PIL import Image
 from datetime import datetime
@@ -18,6 +20,12 @@ class MainWindow(QWidget):
         self.initUI()
 
         app = QApplication.instance()
+
+        font_id = QFontDatabase.addApplicationFont("resources/Pretendard-SemiBold.ttf")
+        font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
+        font = QFont(font_family, 20)  # 폰트 크기 10
+        app.setFont(font)
+
         screen_count = len(app.screens())
         if screen_count > 1:
             second_screen = app.screens()[1]
@@ -62,32 +70,15 @@ class MainWindow(QWidget):
         frame1_button.setStyleSheet(
             "font-size: 18px; padding: 10px; background-color: #007BFF; color: white; border-radius: 5px;"
         )
+        frame1_button.setFixedHeight(50)
+        frame1_button.setFixedWidth(200)  # 버튼의 가로폭을 200으로 설정
         frame1_button.clicked.connect(lambda: self.show_camera_window("frame1.png"))
 
         frame1_layout.addWidget(frame1_label)
         frame1_layout.addWidget(frame1_button, alignment=Qt.AlignCenter)  # 버튼 중앙 정렬
 
-        # 프레임 2 레이아웃 설정
-        frame2_layout = QVBoxLayout()
-        frame2_label = QLabel()
-        frame2_pixmap = QPixmap("resources/frame2.png")
-        if frame2_pixmap.isNull():
-            frame2_label.setText("frame2.png 로드 실패")
-        else:
-            frame2_label.setPixmap(frame2_pixmap.scaled(360, 640, Qt.KeepAspectRatio))  # 크기를 더 크게 조정
-        frame2_label.setAlignment(Qt.AlignCenter)  # 라벨 중앙 정렬
-        frame2_button = QPushButton("선택하기")
-        frame2_button.setStyleSheet(
-            "font-size: 18px; padding: 10px; background-color: #007BFF; color: white; border-radius: 5px;"
-        )
-        frame2_button.clicked.connect(lambda: self.show_camera_window("frame2.png"))
-
-        frame2_layout.addWidget(frame2_label)
-        frame2_layout.addWidget(frame2_button, alignment=Qt.AlignCenter)  # 버튼 중앙 정렬
-
         # 메인 레이아웃에 프레임 레이아웃 추가
         frame_layout.addLayout(frame1_layout)
-        frame_layout.addLayout(frame2_layout)
 
         self.main_layout.addLayout(frame_layout)
 
@@ -102,7 +93,6 @@ class MainWindow(QWidget):
                 child = layout.takeAt(0)
                 if child.widget() is not None:
                     child.widget().deleteLater()
-
 
 class CameraWindow(QWidget):
     def __init__(self, frame):
@@ -132,7 +122,7 @@ class CameraWindow(QWidget):
         self.main_layout.addWidget(self.countdown_label)
 
         self.camera_label = QLabel()
-        self.camera_label.setAlignment(Qt.AlignCenter)  # 카메라 화면 중앙 정렬
+        self.camera_label.setAlignment(Qt.AlignCenter)  # 중앙 정렬
         self.main_layout.addWidget(self.camera_label)
 
         self.photo_count_label = QLabel("0/8장 촬영됨")
@@ -178,14 +168,12 @@ class CameraWindow(QWidget):
     def show_camera_feed(self):
         ret, frame = self.cap.read()
         if ret:
-            frame = cv2.flip(frame, 1)  # 좌우반전
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            h, w, ch = frame.shape
-            bytes_per_line = ch * w
-            converted_Qt_image = QImage(frame.data, w, h, bytes_per_line, QImage.Format_RGB888)
-            self.camera_label.setPixmap(QPixmap.fromImage(converted_Qt_image))
-        if self.photo_counter < self.max_photos:
-            QTimer.singleShot(30, self.show_camera_feed)
+            image = QImage(frame, frame.shape[1], frame.shape[0], frame.strides[0], QImage.Format_RGB888)
+            pixmap = QPixmap.fromImage(image)
+            scaled_pixmap = pixmap.scaled(1120, 630, Qt.KeepAspectRatio)  # 크기를 640x480으로 조정
+            self.camera_label.setPixmap(scaled_pixmap)
+        QTimer.singleShot(30, self.show_camera_feed)  # 30ms마다 업데이트
 
     def capture_photo(self):
         ret, frame = self.cap.read()
@@ -227,7 +215,7 @@ class CameraWindow(QWidget):
         submit_button.setStyleSheet(
             "font-size: 18px; padding: 10px; background-color: #007BFF; color: white; border-radius: 5px;"
         )
-
+        submit_button.setFixedHeight(50)
         submit_button.clicked.connect(self.submit_selection)
         photo_selection_layout.addWidget(submit_button)
 
@@ -248,12 +236,12 @@ class CameraWindow(QWidget):
         if len(selected_photos) == 4:
             print(f"선택된 사진: {selected_photos}")
             self.merge_and_save_photos(selected_photos)
-            self.cleanup_temp_folder()
             self.show_completion_window()
         else:
             QMessageBox.warning(self, "경고", "4장의 사진을 선택하세요.")
 
     def merge_and_save_photos(self, selected_photos):
+        '''
         images = [Image.open(f"temp/photo_{i}.png") for i in selected_photos]
         widths, heights = zip(*(i.size for i in images))
 
@@ -266,19 +254,56 @@ class CameraWindow(QWidget):
         for im in images:
             new_image.paste(im, (0, y_offset))
             y_offset += im.size[1]
+        '''
+
+        images = [Image.open(f"temp/photo_{i}.png") for i in selected_photos]
+
+        canvas_width = 1920
+        canvas_height = 5000
+
+        canvas = Image.new('RGB', (canvas_width, canvas_height), (255, 255, 255))
+
+        y_offset = 0
+        for img in images:
+            canvas.paste(img, (0, y_offset))
+            y_offset += img.height
+        
+        frame = Image.open('resources/frame1.png')
+        canvas.paste(frame, (0, 0), frame)
+        width, height = canvas.size
+        canvas = canvas.resize((width // 2, height // 2))
 
         timestamp = datetime.now().strftime("%y%m%d%H%M%S")
         self.output_path = f"output/biseul-{timestamp}.png"
-        new_image.save(self.output_path)
-        # 셔터 소리 재생
+        canvas.save(self.output_path)
         print(f"{self.output_path} 저장 완료")
 
-    def cleanup_temp_folder(self):
-        for filename in os.listdir("temp"):
-            file_path = os.path.join("temp", filename)
-            if os.path.isfile(file_path):
-                os.remove(file_path)
-                print(f"{file_path} 삭제 완료")
+        # Flask 서버의 업로드 URL
+        url = 'https://biseul4cut.kro.kr/upload'
+
+        # 업로드할 파일 경로
+        file_path = f"output/biseul-{timestamp}.png"
+
+        # 파일 업로드 요청
+        with open(file_path, 'rb') as file:
+            files = {'file': file}
+            response = requests.post(url, files=files)
+
+        # QR 코드 생성
+        url = f"https://biseul4cut.kro.kr/biseul-{timestamp}"
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(url)
+        qr.make(fit=True)
+
+        qr_img = qr.make_image(fill='black', back_color='white')
+        qr_img_path = "temp/qr.png"
+        qr_img.save(qr_img_path)
+        print(f"{qr_img_path} QR 코드 저장 완료")
 
     def show_completion_window(self):
         self.completion_window = CompletionWindow(self.output_path)
@@ -319,14 +344,17 @@ class CompletionWindow(QWidget):
         completion_label.setStyleSheet("font-size: 40px;")
         self.main_layout.addWidget(completion_label)
 
-        # QR 코드 이미지 생성 (임시로 QR 코드 생성 부분 생략)
+        # QR 코드 이미지
         qr_label = QLabel()
-        qr_pixmap = QPixmap("temp/qr_code.png")
+        qr_pixmap = QPixmap("temp/qr.png")
         qr_label.setPixmap(qr_pixmap.scaled(300, 300, Qt.KeepAspectRatio))
         qr_label.setAlignment(Qt.AlignCenter)
         self.main_layout.addWidget(qr_label)
 
         return_button = QPushButton("돌아가기")
+        return_button.setStyleSheet(
+            "font-size: 18px; padding: 10px; background-color: #007BFF; color: white; border-radius: 5px;"
+        )
         return_button.setFixedHeight(50)
         return_button.clicked.connect(self.return_to_main)
 
