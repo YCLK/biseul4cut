@@ -141,7 +141,7 @@ class CameraWindow(QWidget):
         self.counter = self.countdown_time
         self.timer.start(1000)  # 1초마다 타이머 업데이트
 
-        self.cap = cv2.VideoCapture(0)
+        self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
         self.show_camera_feed()
